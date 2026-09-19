@@ -78,7 +78,7 @@
       display: grid;
       grid-template-columns: repeat(3, 1fr);
       gap: 14px;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
     .stat {
       background: var(--surface);
@@ -89,6 +89,55 @@
     }
     .stat-label { color: var(--muted); font-size: 13px; font-weight: 650; }
     .stat-value { font-size: 29px; font-weight: 800; margin-top: 5px; letter-spacing: -.03em; }
+
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .progress-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+    .progress-top strong { color: var(--text); font-size: 14px; }
+    .progress-track {
+      height: 10px;
+      background: #eef0f6;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--success));
+      border-radius: 999px;
+      transition: width .25s ease;
+      width: 0%;
+    }
+    .priority-breakdown {
+      display: flex;
+      gap: 14px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .priority-breakdown span.dot {
+      display: inline-block;
+      width: 8px; height: 8px; border-radius: 50%;
+      margin-right: 5px;
+    }
+    .dot.high { background: #dc4b5f; }
+    .dot.medium { background: #d99a00; }
+    .dot.low { background: #22956b; }
 
     .panel {
       background: var(--surface);
@@ -123,6 +172,17 @@
     .btn-primary:hover { background: var(--primary-dark); }
     .btn-secondary { color: var(--text); background: #eef0f6; }
     .btn-danger { color: var(--danger); background: #fff0f2; }
+    .btn-ghost {
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .btn-ghost:hover { background: #f0f2f6; color: var(--text); }
 
     .toolbar {
       padding: 16px 20px;
@@ -143,6 +203,16 @@
     }
     .tab:hover { background: #f0f1f7; color: var(--text); }
     .tab.active { background: #e9e9ff; color: var(--primary-dark); }
+
+    .tasks-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px 0;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tasks-header .hint { font-size: 12px; color: var(--muted); }
 
     .tasks { padding: 8px 20px 20px; }
     .task-list { list-style: none; margin: 0; padding: 0; }
@@ -218,6 +288,21 @@
     }
     .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+    /* Confirm modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(23,32,51,.45);
+      display: none; align-items: center; justify-content: center; z-index: 30;
+      padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      background: white; border-radius: 16px; padding: 22px;
+      width: min(360px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal h3 { margin: 0 0 8px; font-size: 17px; }
+    .modal p { margin: 0 0 18px; color: var(--muted); font-size: 14px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
     @media (max-width: 760px) {
       .app { width: min(100% - 20px, 680px); padding-top: 22px; }
       header { align-items: flex-start; }
@@ -261,6 +346,17 @@
       <article class="stat"><div class="stat-label">Pending</div><div class="stat-value" id="pendingCount">0</div></article>
     </section>
 
+    <section class="progress-card" aria-label="Daily progress">
+      <div class="progress-top">
+        <span>Today's progress</span>
+        <strong id="progressLabel">0%</strong>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="priority-breakdown" id="priorityBreakdown"></div>
+    </section>
+
     <section class="panel">
       <div class="add-section">
         <form class="add-form" id="addForm">
@@ -280,9 +376,9 @@
         <label class="sr-only" for="searchInput">Search tasks</label>
         <input id="searchInput" placeholder="Search tasks..." autocomplete="off" />
         <div class="tabs" role="tablist" aria-label="Task status">
-          <button class="tab active" data-status="all" role="tab" aria-selected="true">All</button>
-          <button class="tab" data-status="active" role="tab" aria-selected="false">Active</button>
-          <button class="tab" data-status="completed" role="tab" aria-selected="false">Completed</button>
+          <button class="tab active" id="tab-all" data-status="all" role="tab" aria-selected="true" aria-controls="taskList">All</button>
+          <button class="tab" id="tab-active" data-status="active" role="tab" aria-selected="false" aria-controls="taskList" tabindex="-1">Active</button>
+          <button class="tab" id="tab-completed" data-status="completed" role="tab" aria-selected="false" aria-controls="taskList" tabindex="-1">Completed</button>
         </div>
         <label class="sr-only" for="priorityFilter">Filter by priority</label>
         <select id="priorityFilter" aria-label="Filter by priority">
@@ -293,8 +389,16 @@
         </select>
       </div>
 
+      <div class="tasks-header">
+        <span class="hint" id="resultsHint"></span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-ghost" id="resetFiltersBtn" type="button">Reset filters</button>
+          <button class="btn-ghost" id="clearCompletedBtn" type="button">Clear completed</button>
+        </div>
+      </div>
+
       <div class="tasks">
-        <ul class="task-list" id="taskList" aria-live="polite"></ul>
+        <ul class="task-list" id="taskList" role="tabpanel" aria-live="polite"></ul>
         <div class="empty" id="emptyState" hidden>
           <div class="empty-icon">✓</div>
           <h2 id="emptyTitle">No tasks yet</h2>
@@ -303,6 +407,17 @@
       </div>
     </section>
   </main>
+
+  <div class="modal-backdrop" id="confirmBackdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle">Delete this task?</h3>
+      <p>This can't be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="confirmCancel" type="button">Cancel</button>
+        <button class="btn btn-danger" id="confirmDelete" type="button">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -313,6 +428,7 @@
     let searchTerm = "";
     let priorityFilter = "all";
     let editingId = null;
+    let pendingDeleteId = null;
 
     const els = {
       addForm: document.getElementById("addForm"),
@@ -328,7 +444,16 @@
       completed: document.getElementById("completedCount"),
       pending: document.getElementById("pendingCount"),
       today: document.getElementById("today"),
-      toast: document.getElementById("toast")
+      toast: document.getElementById("toast"),
+      progressFill: document.getElementById("progressFill"),
+      progressLabel: document.getElementById("progressLabel"),
+      priorityBreakdown: document.getElementById("priorityBreakdown"),
+      resultsHint: document.getElementById("resultsHint"),
+      resetFiltersBtn: document.getElementById("resetFiltersBtn"),
+      clearCompletedBtn: document.getElementById("clearCompletedBtn"),
+      confirmBackdrop: document.getElementById("confirmBackdrop"),
+      confirmCancel: document.getElementById("confirmCancel"),
+      confirmDelete: document.getElementById("confirmDelete")
     };
 
     els.today.textContent = new Intl.DateTimeFormat("en-IN", {
@@ -339,11 +464,18 @@
       try {
         const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
         return Array.isArray(saved) ? saved : [];
-      } catch { return []; }
+      } catch {
+        return [];
+      }
     }
 
     function saveTasks() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+      } catch (err) {
+        showToast("Couldn't save — storage may be full");
+        console.error("saveTasks failed:", err);
+      }
     }
 
     function createTask(title, priority) {
@@ -379,18 +511,37 @@
       return priority.charAt(0).toUpperCase() + priority.slice(1);
     }
 
+    function renderProgress() {
+      const total = tasks.length;
+      const done = tasks.filter(t => t.completed).length;
+      const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+      els.progressFill.style.width = pct + "%";
+      els.progressLabel.textContent = pct + "%";
+
+      const counts = { high: 0, medium: 0, low: 0 };
+      tasks.forEach(t => { if (!t.completed) counts[t.priority]++; });
+      els.priorityBreakdown.innerHTML = `
+        <span><span class="dot high"></span>${counts.high} high</span>
+        <span><span class="dot medium"></span>${counts.medium} medium</span>
+        <span><span class="dot low"></span>${counts.low} low</span>
+      `;
+    }
+
     function render() {
       const visible = filteredTasks();
 
       els.total.textContent = tasks.length;
       els.completed.textContent = tasks.filter(t => t.completed).length;
       els.pending.textContent = tasks.filter(t => !t.completed).length;
+      els.resultsHint.textContent = tasks.length
+        ? `Showing ${visible.length} of ${tasks.length} task${tasks.length === 1 ? "" : "s"}`
+        : "";
 
       els.taskList.innerHTML = visible.map(task => {
         if (editingId === task.id) {
           return `
             <li class="task" data-id="${task.id}">
-              <button class="check" data-action="toggle" aria-label="Mark task ${task.completed ? "active" : "completed"}">
+              <button class="check" data-action="toggle" aria-pressed="${task.completed}" aria-label="Mark task ${task.completed ? "active" : "completed"}">
                 ${task.completed ? "✓" : ""}
               </button>
               <div class="task-main">
@@ -409,7 +560,7 @@
 
         return `
           <li class="task ${task.completed ? "completed" : ""}" data-id="${task.id}">
-            <button class="check" data-action="toggle" aria-label="${task.completed ? "Mark as active" : "Mark as completed"}">
+            <button class="check" data-action="toggle" aria-pressed="${task.completed}" aria-label="${task.completed ? "Mark as active" : "Mark as completed"}">
               ${task.completed ? "✓" : ""}
             </button>
             <div class="task-main">
@@ -437,6 +588,8 @@
           input.select();
         }
       }
+
+      renderProgress();
     }
 
     function showToast(message) {
@@ -444,6 +597,14 @@
       els.toast.classList.add("show");
       clearTimeout(showToast.timer);
       showToast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+    }
+
+    function debounce(fn, delay) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
     }
 
     els.addForm.addEventListener("submit", event => {
@@ -459,26 +620,86 @@
       els.taskInput.focus();
     });
 
-    els.searchInput.addEventListener("input", event => {
-      searchTerm = event.target.value;
+    const handleSearch = debounce(value => {
+      searchTerm = value;
       render();
-    });
+    }, 150);
+    els.searchInput.addEventListener("input", event => handleSearch(event.target.value));
 
     els.priorityFilter.addEventListener("change", event => {
       priorityFilter = event.target.value;
       render();
     });
 
-    document.querySelectorAll(".tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        statusFilter = tab.dataset.status;
-        document.querySelectorAll(".tab").forEach(t => {
-          const active = t === tab;
-          t.classList.toggle("active", active);
-          t.setAttribute("aria-selected", active);
-        });
-        render();
+    const tabButtons = Array.from(document.querySelectorAll(".tab"));
+    function activateTab(tab) {
+      statusFilter = tab.dataset.status;
+      tabButtons.forEach(t => {
+        const active = t === tab;
+        t.classList.toggle("active", active);
+        t.setAttribute("aria-selected", active);
+        t.tabIndex = active ? 0 : -1;
       });
+      tab.focus();
+      render();
+    }
+    tabButtons.forEach((tab, index) => {
+      tab.addEventListener("click", () => activateTab(tab));
+      tab.addEventListener("keydown", event => {
+        if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+          event.preventDefault();
+          const dir = event.key === "ArrowRight" ? 1 : -1;
+          const nextIndex = (index + dir + tabButtons.length) % tabButtons.length;
+          activateTab(tabButtons[nextIndex]);
+        }
+      });
+    });
+
+    els.resetFiltersBtn.addEventListener("click", () => {
+      searchTerm = "";
+      priorityFilter = "all";
+      els.searchInput.value = "";
+      els.priorityFilter.value = "all";
+      activateTab(document.getElementById("tab-all"));
+      showToast("Filters reset");
+    });
+
+    els.clearCompletedBtn.addEventListener("click", () => {
+      const before = tasks.length;
+      tasks = tasks.filter(t => !t.completed);
+      if (tasks.length === before) {
+        showToast("No completed tasks to clear");
+        return;
+      }
+      saveTasks();
+      render();
+      showToast("Completed tasks cleared");
+    });
+
+    function openConfirm(id) {
+      pendingDeleteId = id;
+      els.confirmBackdrop.classList.add("show");
+      els.confirmDelete.focus();
+    }
+    function closeConfirm() {
+      pendingDeleteId = null;
+      els.confirmBackdrop.classList.remove("show");
+    }
+    els.confirmCancel.addEventListener("click", closeConfirm);
+    els.confirmBackdrop.addEventListener("click", event => {
+      if (event.target === els.confirmBackdrop) closeConfirm();
+    });
+    els.confirmDelete.addEventListener("click", () => {
+      if (!pendingDeleteId) return;
+      tasks = tasks.filter(t => t.id !== pendingDeleteId);
+      if (editingId === pendingDeleteId) editingId = null;
+      saveTasks();
+      render();
+      showToast("Task deleted");
+      closeConfirm();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && els.confirmBackdrop.classList.contains("show")) closeConfirm();
     });
 
     els.taskList.addEventListener("click", event => {
@@ -515,11 +736,7 @@
         render();
         showToast("Task updated");
       } else if (action === "delete") {
-        tasks = tasks.filter(t => t.id !== id);
-        if (editingId === id) editingId = null;
-        saveTasks();
-        render();
-        showToast("Task deleted");
+        openConfirm(id);
       }
     });
 
